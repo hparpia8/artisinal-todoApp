@@ -2,14 +2,14 @@ name: TodoApp
 options:
   bundleIdPrefix: com.artisanal
   deploymentTarget:
-    macOS: "14.0"
+    macOS: "15.0"
   createIntermediateGroups: true
   generateEmptyDirectories: true
 
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
     DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
     ENABLE_HARDENED_RUNTIME: YES
 
@@ -34,7 +34,7 @@ targets:
   TodoApp:
     type: application
     platform: macOS
-    deploymentTarget: "14.0"
+    deploymentTarget: "15.0"
     sources:
       - path: TodoApp
     settings:
@@ -52,7 +52,7 @@ targets:
   TodoWidgetExtension:
     type: app-extension
     platform: macOS
-    deploymentTarget: "14.0"
+    deploymentTarget: "15.0"
     sources:
       - path: TodoWidget
       - path: TodoApp/Models/TodoItem.swift
