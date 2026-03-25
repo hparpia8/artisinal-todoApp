@@ -12,6 +12,12 @@ struct TodoAppApp: App {
         WindowGroup {
             ContentView()
                 .preferredColorScheme(resolvedColorScheme)
+                .onOpenURL { url in
+                    // todoapp://add — opened from the widget's "+" button
+                    guard url.scheme == "todoapp", url.host == "add" else { return }
+                    NSApp.activate(ignoringOtherApps: true)
+                    NotificationCenter.default.post(name: .focusInput, object: nil)
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentMinSize)
@@ -19,4 +25,8 @@ struct TodoAppApp: App {
             CommandGroup(replacing: .newItem) {}
         }
     }
+}
+
+extension Notification.Name {
+    static let focusInput = Notification.Name("focusInput")
 }

@@ -1,5 +1,6 @@
 import WidgetKit
 import SwiftUI
+import AppIntents
 
 // MARK: - Timeline Entry
 
@@ -16,33 +17,14 @@ struct TodoProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (TodoEntry) -> Void) {
-        completion(TodoEntry(date: Date(), items: loadPending()))
+        completion(TodoEntry(date: Date(), items: WidgetStore.load().filter { !$0.isCompleted }))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TodoEntry>) -> Void) {
-        let entry = TodoEntry(date: Date(), items: loadPending())
+        let pending = WidgetStore.load().filter { !$0.isCompleted }
+        let entry = TodoEntry(date: Date(), items: pending)
         let next = Calendar.current.date(byAdding: .minute, value: 5, to: Date()) ?? Date()
         completion(Timeline(entries: [entry], policy: .after(next)))
-    }
-
-    // MARK: - Data loading
-
-    private func loadPending() -> [TodoItem] {
-        let fileURL: URL
-        if let groupURL = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: "group.com.artisanal.todo"
-        ) {
-            fileURL = groupURL.appendingPathComponent("todos.json")
-        } else {
-            let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            fileURL = appSupport.appendingPathComponent("ArtisanalTodo/todos.json")
-        }
-
-        guard let data = try? Data(contentsOf: fileURL) else { return [] }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let all = (try? decoder.decode([TodoItem].self, from: data)) ?? []
-        return all.filter { !$0.isCompleted }
     }
 
     private var sampleItems: [TodoItem] {
@@ -92,6 +74,8 @@ struct TodoWidgetEntryView: View {
         .containerBackground(Color("AppBackground"), for: .widget)
     }
 
+    // MARK: - Header
+
     var widgetHeader: some View {
         HStack {
             Text("todo")
@@ -103,27 +87,49 @@ struct TodoWidgetEntryView: View {
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(Color("AppMutedText"))
             }
+            // Opens the main app focused on the input bar
+            Link(destination: URL(string: "todoapp://add")!) {
+                Image(systemName: "plus")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Color("AppAccent"))
+                    .frame(width: 22, height: 22)
+            }
         }
         .padding(.horizontal, 12)
         .padding(.top, 10)
-        .padding(.bottom, 8)
+        .padding(.bottom, 6)
     }
+
+    // MARK: - Item list (interactive)
 
     var itemList: some View {
         VStack(spacing: 0) {
             ForEach(Array(displayItems.enumerated()), id: \.element.id) { idx, item in
-                HStack(spacing: 7) {
-                    Circle()
-                        .stroke(Color("AppCheckboxBorder"), lineWidth: 1)
-                        .frame(width: 11, height: 11)
-                    Text(item.title)
-                        .font(.system(size: 11, weight: .regular, design: .serif))
-                        .foregroundStyle(Color("AppPrimaryText"))
-                        .lineLimit(1)
-                    Spacer()
+                // Button(intent:) makes the row interactive inside the widget
+                Button(intent: ToggleTodoIntent(todoID: item.id.uuidString)) {
+                    HStack(spacing: 8) {
+                        ZStack {
+                            Circle()
+                                .stroke(Color("AppCheckboxBorder"), lineWidth: 1)
+                                .frame(width: 11, height: 11)
+                            // Checkmark shown for completed items during transition
+                            if item.isCompleted {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 7, weight: .bold))
+                                    .foregroundStyle(Color("AppAccent"))
+                            }
+                        }
+                        Text(item.title)
+                            .font(.system(size: 11, weight: .regular, design: .serif))
+                            .foregroundStyle(Color("AppPrimaryText"))
+                            .lineLimit(1)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .contentShape(Rectangle())
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 5)
+                .buttonStyle(.plain)
 
                 if idx < displayItems.count - 1 {
                     Rectangle()
@@ -143,12 +149,22 @@ struct TodoWidgetEntryView: View {
         }
     }
 
+    // MARK: - Empty state
+
     var allDoneView: some View {
         HStack {
             Spacer()
-            Text("all done")
-                .font(.system(size: 12, weight: .light, design: .serif))
-                .foregroundStyle(Color("AppMutedText"))
+            VStack(spacing: 4) {
+                Text("all done")
+                    .font(.system(size: 12, weight: .light, design: .serif))
+                    .foregroundStyle(Color("AppMutedText"))
+                // Tap + to add via the app
+                Link(destination: URL(string: "todoapp://add")!) {
+                    Text("add a task →")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color("AppAccent"))
+                }
+            }
             Spacer()
         }
         .padding(.top, 14)

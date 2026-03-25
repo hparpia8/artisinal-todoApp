@@ -17,6 +17,9 @@ struct ContentView: View {
         }
         .background(AppTheme.background)
         .frame(minWidth: 380, idealWidth: 460, minHeight: 500, idealHeight: 650)
+        .onReceive(NotificationCenter.default.publisher(for: .focusInput)) { _ in
+            inputFocused = true
+        }
     }
 
     // MARK: - Header
@@ -108,21 +111,23 @@ struct ContentView: View {
                         emptyState
                     } else {
                         ForEach(store.pending) { item in
-                            TodoRowView(item: item) {
-                                withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
-                                    store.toggle(item)
+                            TodoRowView(
+                                item: item,
+                                onToggle: {
+                                    withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
+                                        store.toggle(item)
+                                    }
+                                },
+                                onDelete: {
+                                    withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
+                                        store.delete(item)
+                                    }
                                 }
-                            }
-                            // slides up when completed, slides in from top when restored
+                            )
                             .transition(.asymmetric(
                                 insertion: .opacity.combined(with: .move(edge: .top)),
                                 removal: .opacity.combined(with: .move(edge: .top))
                             ))
-                            .contextMenu {
-                                Button("Delete", role: .destructive) {
-                                    withAnimation { store.delete(item) }
-                                }
-                            }
                         }
                     }
 
