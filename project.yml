@@ -1,0 +1,51 @@
+name: TodoApp
+options:
+  bundleIdPrefix: com.artisanal
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+    ENABLE_HARDENED_RUNTIME: YES
+
+targets:
+  TodoApp:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: TodoApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.artisanal.todo
+        INFOPLIST_FILE: TodoApp/Info.plist
+        CODE_SIGN_ENTITLEMENTS: TodoApp/TodoApp.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "-"
+    dependencies:
+      - target: TodoWidgetExtension
+        embed: true
+
+  TodoWidgetExtension:
+    type: app-extension
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: TodoWidget
+      - path: TodoApp/Models/TodoItem.swift
+      - path: TodoApp/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.artisanal.todo.widget
+        INFOPLIST_FILE: TodoWidget/Info.plist
+        CODE_SIGN_ENTITLEMENTS: TodoWidget/TodoWidgetExtension.entitlements
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "-"
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../../../../Frameworks @executable_path/../Frameworks"
+        SKIP_INSTALL: YES
