@@ -64,25 +64,24 @@ struct TodoRowView: View {
                 Circle()
                     .stroke(
                         isCompleted
-                            ? AppTheme.completedText
+                            ? AppTheme.accent
                             : (isHovered ? AppTheme.accent : AppTheme.checkboxBorder),
-                        lineWidth: 1.2
+                        lineWidth: 1.5
                     )
                     .frame(width: 18, height: 18)
-                    .animation(.easeInOut(duration: 0.15), value: isHovered)
 
                 if isCompleted {
                     Circle()
-                        .fill(AppTheme.completedText.opacity(0.12))
+                        .fill(AppTheme.accent.opacity(0.18))
                         .frame(width: 18, height: 18)
 
                     Image(systemName: "checkmark")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(AppTheme.completedText)
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(AppTheme.accent)
                 }
             }
         }
         .buttonStyle(.plain)
-        .animation(.easeInOut(duration: 0.2), value: isCompleted)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isCompleted)
     }
 }

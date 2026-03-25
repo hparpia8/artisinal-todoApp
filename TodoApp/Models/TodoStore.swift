@@ -53,7 +53,11 @@ class TodoStore: ObservableObject {
     func toggle(_ item: TodoItem) {
         guard let i = items.firstIndex(where: { $0.id == item.id }) else { return }
         if items[i].isCompleted {
-            items[i].restore()
+            // Remove from current position and insert at front so it appears
+            // at the top of the active list
+            var restored = items.remove(at: i)
+            restored.restore()
+            items.insert(restored, at: 0)
         } else {
             items[i].complete()
         }

@@ -82,17 +82,22 @@ struct ContentView: View {
     var scrollContent: some View {
         ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: true) {
-                LazyVStack(spacing: 0) {
+                VStack(spacing: 0) {
 
                     // Completed history (oldest → newest, scrolled above)
                     if !store.completed.isEmpty {
                         completedHeader
                         ForEach(store.completed) { item in
                             TodoRowView(item: item) {
-                                withAnimation(.easeInOut(duration: 0.35)) {
+                                withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
                                     store.toggle(item)
                                 }
                             }
+                            // slides up into completed, slides down out when restored
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .move(edge: .bottom)),
+                                removal: .opacity.combined(with: .move(edge: .top))
+                            ))
                         }
                         nowDivider
                     }
@@ -103,10 +108,15 @@ struct ContentView: View {
                     } else {
                         ForEach(store.pending) { item in
                             TodoRowView(item: item) {
-                                withAnimation(.easeInOut(duration: 0.35)) {
+                                withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
                                     store.toggle(item)
                                 }
                             }
+                            // slides up when completed, slides in from top when restored
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .move(edge: .top)),
+                                removal: .opacity.combined(with: .move(edge: .top))
+                            ))
                             .contextMenu {
                                 Button("Delete", role: .destructive) {
                                     withAnimation { store.delete(item) }
