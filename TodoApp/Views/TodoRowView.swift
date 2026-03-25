@@ -10,7 +10,7 @@ struct TodoRowView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            checkboxButton
+            checkbox
                 .padding(.top, 1)
 
             VStack(alignment: .leading, spacing: 4) {
@@ -54,34 +54,34 @@ struct TodoRowView: View {
                 .padding(.horizontal, AppTheme.rowPaddingH),
             alignment: .bottom
         )
-        .onHover { isHovered = $0 }
+        // Whole row is the tap target — much more reliable than a small button
         .contentShape(Rectangle())
+        .onTapGesture { onToggle() }
+        .onHover { isHovered = $0 }
     }
 
-    var checkboxButton: some View {
-        Button(action: onToggle) {
-            ZStack {
+    // Pure visual — no Button wrapper, tap is handled by the row above
+    var checkbox: some View {
+        ZStack {
+            Circle()
+                .stroke(
+                    isCompleted
+                        ? AppTheme.accent
+                        : (isHovered ? AppTheme.accent : AppTheme.checkboxBorder),
+                    lineWidth: 1.5
+                )
+                .frame(width: 18, height: 18)
+
+            if isCompleted {
                 Circle()
-                    .stroke(
-                        isCompleted
-                            ? AppTheme.accent
-                            : (isHovered ? AppTheme.accent : AppTheme.checkboxBorder),
-                        lineWidth: 1.5
-                    )
+                    .fill(AppTheme.accent.opacity(0.18))
                     .frame(width: 18, height: 18)
 
-                if isCompleted {
-                    Circle()
-                        .fill(AppTheme.accent.opacity(0.18))
-                        .frame(width: 18, height: 18)
-
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(AppTheme.accent)
-                }
+                Image(systemName: "checkmark")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(AppTheme.accent)
             }
         }
-        .buttonStyle(.plain)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isCompleted)
     }
 }

@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var store = TodoStore()
     @State private var newItemText = ""
+    @State private var scrollTrigger = 0
     @FocusState private var inputFocused: Bool
     @AppStorage("colorScheme") private var colorSchemePreference: String = "auto"
 
@@ -135,6 +136,11 @@ struct ContentView: View {
                     proxy.scrollTo("bottom", anchor: .bottom)
                 }
             }
+            .onChange(of: scrollTrigger) { _ in
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                    proxy.scrollTo("bottom", anchor: .bottom)
+                }
+            }
         }
     }
 
@@ -229,5 +235,6 @@ struct ContentView: View {
             store.add(newItemText)
         }
         newItemText = ""
+        scrollTrigger += 1
     }
 }
