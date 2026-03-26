@@ -6,6 +6,7 @@ class TodoStore: ObservableObject {
     @Published private(set) var items: [TodoItem] = []
 
     private let fileURL: URL
+    private var fileWatcher: DispatchSourceFileSystemObject?
 
     static var storeURL: URL {
         if let groupURL = FileManager.default.containerURL(
@@ -23,6 +24,27 @@ class TodoStore: ObservableObject {
     init() {
         fileURL = Self.storeURL
         load()
+        startWatching()
+    }
+
+    // Watches the JSON file for external writes (e.g. from the MCP server)
+    // and reloads live without requiring an app restart.
+    private func startWatching() {
+        let fd = open(fileURL.path, O_EVTONLY)
+        guard fd >= 0 else { return }
+        let source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: fd,
+            eventMask: .write,
+            queue: .main
+        )
+        source.setEventHandler { [weak self] in
+            self?.load()
+        }
+        source.setCancelHandler {
+            close(fd)
+        }
+        source.resume()
+        fileWatcher = source
     }
 
     func load() {

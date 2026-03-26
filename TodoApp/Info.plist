@@ -32,6 +32,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>todoapp</string>
+				<string>artisanaltodo</string>
 			</array>
 		</dict>
 	</array>
