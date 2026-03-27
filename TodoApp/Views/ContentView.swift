@@ -7,7 +7,7 @@ private let completedDayFormatter: DateFormatter = {
 }()
 
 struct ContentView: View {
-    @StateObject private var store = TodoStore()
+    @EnvironmentObject private var store: TodoStore
     @State private var newItemText = ""
     @State private var scrollTrigger = 0
     @FocusState private var inputFocused: Bool
