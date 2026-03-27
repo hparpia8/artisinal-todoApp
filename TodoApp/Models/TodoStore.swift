@@ -9,9 +9,14 @@ class TodoStore: ObservableObject {
     private var fileWatcher: DispatchSourceFileSystemObject?
 
     static var storeURL: URL {
+        // Only use the App Group container if it already exists on disk —
+        // i.e., the app is properly signed with the group entitlement.
+        // Calling containerURL without a real entitlement triggers a macOS
+        // "access files from other apps" permission prompt, so we guard
+        // against that by checking directory existence first.
         if let groupURL = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: "group.com.artisanal.todo"
-        ) {
+        ), FileManager.default.fileExists(atPath: groupURL.path) {
             return groupURL.appendingPathComponent("todos.json")
         }
         // Fallback for unsigned/development builds
