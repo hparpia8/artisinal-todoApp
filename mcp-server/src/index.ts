@@ -73,6 +73,8 @@ server.tool(
   {},
   async () => {
     const todos = readTodos();
+    // TODO: Hide raw list output from users — only AI should see this and generate its own response.
+    // The formatted list below should not be surfaced directly to the user.
     return { content: [{ type: "text", text: formatTodoList(todos) }] };
   }
 );
