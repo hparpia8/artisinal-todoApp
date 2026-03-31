@@ -15,6 +15,7 @@ struct TodoAppApp: App {
             ContentView()
                 .environmentObject(store)
                 .preferredColorScheme(resolvedColorScheme)
+                .handlesExternalEvents(preferring: ["refresh", "add"], allowing: ["add"])
                 .onOpenURL { url in
                     switch (url.scheme, url.host) {
                     case ("todoapp", "add"):

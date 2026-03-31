@@ -3,23 +3,26 @@
 A simple, local-only macOS todo app with a warm pen-and-paper feel.
 
 - One continuous scrollable page — active tasks at the bottom, history above
-- Fully offline — data never leaves your machine
+- Fully offline — your data never leaves your machine
 - macOS desktop widget (3, 5, or 10 tasks at a glance)
 - Light, Dark, and Auto (follows system) appearance modes
+- AI-ready: built-in MCP server lets Claude manage your todos
 
-**Requires macOS 14 (Sonoma) or later.**
+**Requires macOS 15 (Sequoia) or later.**
 
 ---
 
-## Install
+## Download
+
+**Option 1 — DMG:** Grab the latest `TodoApp.dmg` from the [Releases page](https://github.com/hparpia8/todoApp/releases), open it, and drag the app to `/Applications`.
+
+**Option 2 — curl:**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/hparpia8/todoApp/main/install.sh | bash
 ```
 
-Downloads the latest release from GitHub Releases and copies it to `/Applications`. You'll be prompted to launch the app when done.
-
-> **Note:** The curl installer requires a published GitHub Release with a `TodoApp.dmg` attached. See [Publishing a release](#publishing-a-release) below.
+Downloads the latest release and installs the app to `/Applications` automatically.
 
 ---
 
@@ -40,131 +43,78 @@ Downloads the latest release from GitHub Releases and copies it to `/Application
 2. Search for **Artisanal Todo**
 3. Choose Small (3 tasks), Medium (5), or Large (10)
 
-> The widget requires the app to be installed and launched at least once. For live data, the app must be signed with an Apple Developer account (see [Widget & signing](#widget--signing)).
+---
+
+## Use with AI (MCP)
+
+Artisanal Todo includes an MCP server so AI assistants like Claude can read and manage your tasks by voice or natural language.
+
+### Setup
+
+**1. Build the server** (requires Node.js 18+):
+
+```bash
+cd mcp-server
+npm install
+npm run build
+```
+
+**2. Add to Claude Desktop** — open `~/Library/Application Support/Claude/claude_desktop_config.json` and add:
+
+```json
+{
+  "mcpServers": {
+    "artisanal-todo": {
+      "command": "node",
+      "args": ["/path/to/todoApp/mcp-server/dist/index.js"]
+    }
+  }
+}
+```
+
+Replace `/path/to/todoApp` with the actual folder path on your machine. Restart Claude Desktop after saving.
+
+**3. Start talking to Claude:**
+
+- *"What's on my todo list?"*
+- *"Add a task: call the dentist"*
+- *"Mark 'call the dentist' as done"*
+- *"Delete task 2"*
+
+The app refreshes instantly when Claude makes a change.
+
+### Other MCP clients
+
+Any MCP-compatible client works. Point it at `node /path/to/todoApp/mcp-server/dist/index.js` using stdio transport.
 
 ---
 
-## Build & test locally
+## Your data
 
-**Prerequisites:** Xcode 15+, Homebrew
+All todos are stored locally at:
 
-### Quick start
+```
+~/Library/Application Support/ArtisanalTodo/todos.json
+```
+
+Nothing is synced to the cloud. You can back up, inspect, or export this file at any time.
+
+---
+
+## Build from source
+
+**Prerequisites:** Xcode 16+, Homebrew, Node.js 18+
 
 ```bash
 git clone https://github.com/hparpia8/todoApp.git
 cd todoApp
-./setup.sh
+make setup   # installs XcodeGen and generates the Xcode project
+make open    # opens the project in Xcode
 ```
 
-`setup.sh` installs [XcodeGen](https://github.com/yonaskolb/XcodeGen) via Homebrew and generates `TodoApp.xcodeproj`.
+Press **⌘R** in Xcode to build and run. Make sure the scheme is set to **TodoApp** (not `TodoWidgetExtension`).
 
-Then open in Xcode:
-
-```bash
-open TodoApp.xcodeproj
-```
-
-**Important:** In Xcode's toolbar, make sure the scheme is set to **TodoApp** (not `TodoWidgetExtension`) before pressing ⌘R.
-
-```
-[TodoApp] > [My Mac]   ▶
-```
-
-### Using make
-
-```bash
-make setup    # install XcodeGen + generate project
-make open     # open in Xcode
-make build    # build from the terminal
-make archive  # build a release archive
-make clean    # remove generated project + build output
-```
-
-### Running from the terminal (after building)
-
-```bash
-make build
-# the app binary lands in Xcode's DerivedData — open it from Xcode with ⌘R
-```
-
----
-
-## Data storage
-
-| Build type | Storage location |
-|------------|-----------------|
-| Signed (Apple Developer account) | `~/Library/Group Containers/group.com.artisanal.todo/todos.json` |
-| Unsigned / development | `~/Library/Application Support/ArtisanalTodo/todos.json` |
-
-To inspect your data at any time:
-
-```bash
-cat ~/Library/Application\ Support/ArtisanalTodo/todos.json
-```
-
----
-
-## Widget & signing
-
-The WidgetKit extension is always sandboxed by macOS. For the widget to read live data from the app, both targets must share an **App Group** (`group.com.artisanal.todo`), which requires a valid Apple Developer account.
-
-**To enable for App Store / signed distribution:**
-
-1. Add your Team ID in Xcode → Signing & Capabilities
-2. Create the App Group `group.com.artisanal.todo` in your [Apple Developer portal](https://developer.apple.com/account/resources/identifiers/list/applicationGroup)
-3. In both entitlements files, uncomment the App Groups section:
-   ```xml
-   <key>com.apple.security.application-groups</key>
-   <array><string>group.com.artisanal.todo</string></array>
-   ```
-4. Enable sandbox in `TodoApp.entitlements` (`com.apple.security.app-sandbox = true`)
-
-For unsigned/development builds the widget shows placeholder data — the main app works fully.
-
----
-
-## Publishing a release
-
-To make the curl installer work:
-
-1. Archive the app: `make archive` (or Xcode → Product → Archive)
-2. Export `TodoApp.app` from the archive
-3. Wrap it in a DMG named `TodoApp.dmg`
-4. Create a GitHub Release and attach `TodoApp.dmg`
-
-The install script automatically fetches the latest release.
-
----
-
-## Project structure
-
-```
-todoApp/
-├── project.yml              XcodeGen spec — source of truth for the Xcode project
-├── setup.sh                 Dev setup (installs XcodeGen + generates project)
-├── install.sh               Curl-installable release script
-├── Makefile                 Build shortcuts
-├── TodoApp/
-│   ├── App/                 App entry point (@main)
-│   ├── Views/               ContentView, TodoRowView
-│   ├── Models/              TodoItem (shared with widget), TodoStore
-│   ├── Theme/               AppTheme colors + fonts, AppColorScheme enum
-│   └── Assets.xcassets/     7 adaptive color sets (light + dark variants)
-└── TodoWidget/              WidgetKit extension (Small / Medium / Large)
-```
-
-> `TodoApp.xcodeproj` is git-ignored — regenerate it anytime with `xcodegen generate` or `./setup.sh`.
-
----
-
-## Roadmap
-
-- [ ] App Store release (macOS)
-- [ ] iOS companion app
-- [ ] Android app
-- [ ] Due dates
-- [ ] Tags / projects
-- [ ] Keyboard shortcuts
+> The `TodoApp.xcodeproj` file is git-ignored and generated by [XcodeGen](https://github.com/yonaskolb/XcodeGen). Run `make setup` again after pulling changes.
 
 ---
 

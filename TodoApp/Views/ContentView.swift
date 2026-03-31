@@ -158,6 +158,12 @@ struct ContentView: View {
                     proxy.scrollTo("pending-top", anchor: .top)
                 }
             }
+            .onChange(of: store.pending.count) { oldCount, newCount in
+                guard newCount > oldCount else { return }
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                    proxy.scrollTo("pending-top", anchor: .top)
+                }
+            }
         }
     }
 
