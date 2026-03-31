@@ -136,6 +136,80 @@ The install script automatically fetches the latest release.
 
 ---
 
+## MCP server — use with AI agents
+
+The MCP server lets any AI agent (Claude, Cursor, etc.) read and manage your todos directly. It communicates over stdio and works with any MCP-compatible client.
+
+### Build the server
+
+```bash
+cd mcp-server
+npm install
+npm run build
+```
+
+This compiles TypeScript to `mcp-server/dist/index.js`.
+
+### Connect to Claude Desktop
+
+Add the following to your Claude Desktop config file at `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "artisanal-todo": {
+      "command": "node",
+      "args": ["/absolute/path/to/todoApp/mcp-server/dist/index.js"]
+    }
+  }
+}
+```
+
+Replace `/absolute/path/to/todoApp` with the actual path on your machine (e.g. `~/Documents/Projects/todoApp` expanded to a full path). Restart Claude Desktop after saving.
+
+### Connect to Claude Code (CLI)
+
+Add the server to your project's `.mcp.json` file in the repo root:
+
+```json
+{
+  "mcpServers": {
+    "artisanal-todo": {
+      "command": "node",
+      "args": ["./mcp-server/dist/index.js"]
+    }
+  }
+}
+```
+
+Or register it globally for all projects:
+
+```bash
+claude mcp add artisanal-todo -- node /absolute/path/to/todoApp/mcp-server/dist/index.js
+```
+
+### Available tools
+
+| Tool | Description |
+|------|-------------|
+| `add_todo` | Add a new task by title |
+| `list_todos` | List all pending and completed tasks (output is for the AI, not shown raw to the user) |
+| `complete_todo` | Mark a task done — by list number, title substring, or UUID |
+| `delete_todo` | Permanently delete a task — by list number, title substring, or UUID |
+
+### Example prompts
+
+Once connected, you can talk to Claude naturally:
+
+- *"Add a todo: review the pull request"*
+- *"What's on my todo list?"*
+- *"Mark 'review the pull request' as done"*
+- *"Delete task 3"*
+
+The server writes to `~/Library/Application Support/ArtisanalTodo/todos.json` and pings the app to refresh immediately after any change.
+
+---
+
 ## Project structure
 
 ```
@@ -150,7 +224,12 @@ todoApp/
 │   ├── Models/              TodoItem (shared with widget), TodoStore
 │   ├── Theme/               AppTheme colors + fonts, AppColorScheme enum
 │   └── Assets.xcassets/     7 adaptive color sets (light + dark variants)
-└── TodoWidget/              WidgetKit extension (Small / Medium / Large)
+├── TodoWidget/              WidgetKit extension (Small / Medium / Large)
+└── mcp-server/
+    ├── src/
+    │   ├── index.ts         MCP server entry point — registers 4 tools
+    │   └── todo-store.ts    File I/O and CRUD logic (no side effects, fully tested)
+    └── dist/                Compiled output (run `npm run build`)
 ```
 
 > `TodoApp.xcodeproj` is git-ignored — regenerate it anytime with `xcodegen generate` or `./setup.sh`.
