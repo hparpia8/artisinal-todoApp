@@ -1,12 +1,17 @@
 /**
  * Pure-logic module for todo CRUD — no MCP, no I/O side effects.
  * This is the testable core; index.ts wires it to MCP + filesystem.
+ *
+ * Storage: SQLite via better-sqlite3.
+ * Schema:  todos(id, title, createdAt, completedAt, isCompleted, sortOrder)
+ * Dates:   ISO 8601 TEXT, compatible with Swift's ISO8601DateFormatter.
  */
 
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { randomUUID } from "crypto";
+import Database from "better-sqlite3";
 
 // ---------------------------------------------------------------------------
 // Types — mirror the Swift TodoItem model
@@ -20,22 +25,117 @@ export interface TodoItem {
   isCompleted: boolean;
 }
 
+// Row shape returned by better-sqlite3 (SQLite stores booleans as 0/1)
+interface TodoRow {
+  id: string;
+  title: string;
+  createdAt: string;
+  completedAt: string | null;
+  isCompleted: number;
+  sortOrder: number;
+}
+
 // ---------------------------------------------------------------------------
-// Persistence helpers
+// Path resolution — detects whether the app is running sandboxed
 // ---------------------------------------------------------------------------
 
-const TODO_DIR = path.join(
+const SANDBOX_CONTAINER = path.join(
   os.homedir(),
   "Library",
-  "Application Support",
-  "ArtisanalTodo"
+  "Containers",
+  "com.artisanal.todo",
+  "Data"
 );
-const TODO_PATH = path.join(TODO_DIR, "todos.json");
 
-export function readTodos(filePath: string = TODO_PATH): TodoItem[] {
+const TODO_DIR = fs.existsSync(SANDBOX_CONTAINER)
+  ? path.join(
+      SANDBOX_CONTAINER,
+      "Library",
+      "Application Support",
+      "ArtisanalTodo"
+    )
+  : path.join(os.homedir(), "Library", "Application Support", "ArtisanalTodo");
+
+const TODO_PATH = path.join(TODO_DIR, "todos.db");
+
+// ---------------------------------------------------------------------------
+// Database helpers
+// ---------------------------------------------------------------------------
+
+const CREATE_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS todos (
+    id          TEXT    NOT NULL PRIMARY KEY,
+    title       TEXT    NOT NULL,
+    createdAt   TEXT    NOT NULL,
+    completedAt TEXT,
+    isCompleted INTEGER NOT NULL DEFAULT 0,
+    sortOrder   INTEGER NOT NULL DEFAULT 0
+  )
+`;
+
+function openDb(dbPath: string): Database.Database {
+  const dir = path.dirname(dbPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  const db = new Database(dbPath);
+  db.pragma("journal_mode = WAL");
+  db.pragma("busy_timeout = 1000");
+  db.exec(CREATE_TABLE_SQL);
+  return db;
+}
+
+function rowToItem(row: TodoRow): TodoItem {
+  return {
+    id: row.id,
+    title: row.title,
+    createdAt: row.createdAt,
+    completedAt: row.completedAt,
+    isCompleted: row.isCompleted === 1,
+  };
+}
+
+// Migrate from todos.json to todos.db on first launch (runs once, then skips).
+function migrateFromJSON(db: Database.Database, dbPath: string): void {
+  const count = (
+    db.prepare("SELECT COUNT(*) as n FROM todos").get() as { n: number }
+  ).n;
+  if (count > 0) return;
+
+  const jsonPath = path.join(path.dirname(dbPath), "todos.json");
+  if (!fs.existsSync(jsonPath)) return;
+
   try {
-    const data = fs.readFileSync(filePath, "utf-8");
-    return JSON.parse(data) as TodoItem[];
+    const items: TodoItem[] = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
+    const insert = db.prepare(`
+      INSERT INTO todos (id, title, createdAt, completedAt, isCompleted, sortOrder)
+      VALUES (@id, @title, @createdAt, @completedAt, @isCompleted, @sortOrder)
+    `);
+    db.transaction((todos: TodoItem[]) => {
+      todos.forEach((item, i) =>
+        insert.run({ ...item, isCompleted: item.isCompleted ? 1 : 0, sortOrder: i })
+      );
+    })(items);
+    fs.renameSync(jsonPath, jsonPath + ".migrated");
+    console.error(`[todo-store] Migrated ${items.length} items from JSON to SQLite`);
+  } catch {
+    // Non-fatal — start with empty DB if migration fails
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Persistence — public API (same signatures as before)
+// ---------------------------------------------------------------------------
+
+export function readTodos(dbPath: string = TODO_PATH): TodoItem[] {
+  try {
+    const db = openDb(dbPath);
+    migrateFromJSON(db, dbPath);
+    const rows = db
+      .prepare("SELECT * FROM todos ORDER BY sortOrder ASC")
+      .all() as TodoRow[];
+    db.close();
+    return rows.map(rowToItem);
   } catch {
     return [];
   }
@@ -43,13 +143,21 @@ export function readTodos(filePath: string = TODO_PATH): TodoItem[] {
 
 export function writeTodos(
   todos: TodoItem[],
-  filePath: string = TODO_PATH
+  dbPath: string = TODO_PATH
 ): void {
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  fs.writeFileSync(filePath, JSON.stringify(todos, null, 2), "utf-8");
+  const db = openDb(dbPath);
+  const deleteAll = db.prepare("DELETE FROM todos");
+  const insert = db.prepare(`
+    INSERT INTO todos (id, title, createdAt, completedAt, isCompleted, sortOrder)
+    VALUES (@id, @title, @createdAt, @completedAt, @isCompleted, @sortOrder)
+  `);
+  db.transaction(() => {
+    deleteAll.run();
+    todos.forEach((item, i) =>
+      insert.run({ ...item, isCompleted: item.isCompleted ? 1 : 0, sortOrder: i })
+    );
+  })();
+  db.close();
 }
 
 // ---------------------------------------------------------------------------
