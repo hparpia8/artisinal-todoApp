@@ -79,6 +79,7 @@ Replace `/path/to/todoApp` with the actual folder path on your machine. Restart 
 - *"What's on my todo list?"*
 - *"Add a task: call the dentist"*
 - *"Mark 'call the dentist' as done"*
+- *"Actually, unmark that — I didn't finish it"*
 - *"Delete task 2"*
 
 The app refreshes instantly when Claude makes a change.
@@ -91,13 +92,13 @@ Any MCP-compatible client works. Point it at `node /path/to/todoApp/mcp-server/d
 
 ## Your data
 
-All todos are stored locally at:
+All todos are stored locally in a SQLite database at:
 
 ```
-~/Library/Application Support/ArtisanalTodo/todos.json
+~/Library/Application Support/ArtisanalTodo/todos.db
 ```
 
-Nothing is synced to the cloud. You can back up, inspect, or export this file at any time.
+Nothing is synced to the cloud. You can back up this file at any time.
 
 ---
 

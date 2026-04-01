@@ -8,6 +8,7 @@ import {
   writeTodos,
   createTodo,
   completeTodo,
+  uncompleteTodo,
   deleteTodo,
   formatTodoList,
 } from "./todo-store.js";
@@ -32,7 +33,7 @@ const server = new McpServer({
 
 const todoQuerySchema = {
   number: z
-    .number()
+    .coerce.number()
     .int()
     .positive()
     .optional()
@@ -94,6 +95,25 @@ server.tool(
   async (query) => {
     const todos = readTodos();
     const result = completeTodo(todos, query);
+    if (!result.isError && result.todos !== todos) {
+      saveAndNotify(result.todos);
+    }
+    return {
+      content: [{ type: "text", text: result.message }],
+      ...(result.isError ? { isError: true } : {}),
+    };
+  }
+);
+
+// --- uncomplete_todo --------------------------------------------------------
+
+server.tool(
+  "uncomplete_todo",
+  "Mark a completed todo item as incomplete (undo a completion). Identify the item by its list number, a title substring, or UUID.",
+  todoQuerySchema,
+  async (query) => {
+    const todos = readTodos();
+    const result = uncompleteTodo(todos, query);
     if (!result.isError && result.todos !== todos) {
       saveAndNotify(result.todos);
     }

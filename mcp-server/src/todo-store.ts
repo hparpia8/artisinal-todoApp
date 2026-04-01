@@ -247,6 +247,23 @@ export function completeTodo(
   return { todos: updated, message: `Completed: "${item.title}"` };
 }
 
+export function uncompleteTodo(
+  todos: TodoItem[],
+  query: FindQuery
+): { todos: TodoItem[]; message: string; isError?: boolean } {
+  const result = findTodo(todos, query);
+  if ("error" in result) {
+    return { todos, message: result.error, isError: true };
+  }
+  const { item, index } = result;
+  if (!item.isCompleted) {
+    return { todos, message: `"${item.title}" is not completed.` };
+  }
+  const updated = [...todos];
+  updated[index] = { ...item, isCompleted: false, completedAt: null };
+  return { todos: updated, message: `Marked incomplete: "${item.title}"` };
+}
+
 export function deleteTodo(
   todos: TodoItem[],
   query: FindQuery
