@@ -12,7 +12,7 @@ final class TodoStoreTests: XCTestCase {
         let tmp = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try? FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
-        testFile = tmp.appendingPathComponent("todos.json")
+        testFile = tmp.appendingPathComponent("todos.db")
         store = TodoStore(fileURL: testFile)
     }
 
@@ -101,7 +101,7 @@ final class TodoStoreTests: XCTestCase {
     func testLoadFromEmptyFile() {
         // Store with no file should start empty
         let emptyFile = testFile.deletingLastPathComponent()
-            .appendingPathComponent("empty.json")
+            .appendingPathComponent("empty.db")
         let emptyStore = TodoStore(fileURL: emptyFile)
         XCTAssertTrue(emptyStore.items.isEmpty)
     }

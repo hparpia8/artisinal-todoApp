@@ -61,14 +61,14 @@ describe("readTodos", () => {
     expect(readTodos(tmpFile)).toEqual([]);
   });
 
-  it("returns empty array when file contains invalid JSON", () => {
-    fs.writeFileSync(tmpFile, "not-json", "utf-8");
+  it("returns empty array when file is corrupt", () => {
+    fs.writeFileSync(tmpFile, "not-a-database", "utf-8");
     expect(readTodos(tmpFile)).toEqual([]);
   });
 
   it("reads a valid todo list", () => {
     const todos = [makeTodo()];
-    fs.writeFileSync(tmpFile, JSON.stringify(todos), "utf-8");
+    writeTodos(todos, tmpFile);
     expect(readTodos(tmpFile)).toEqual(todos);
   });
 });
