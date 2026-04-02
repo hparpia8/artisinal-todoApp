@@ -77,7 +77,7 @@ MCP_DEST="${RESOURCES}/mcp-server"
 if [ ! -f "${MCP_SRC}/package.json" ]; then
     echo "  ⚠ mcp-server/ not found — skipping MCP bundle"
 else
-    (cd "${MCP_SRC}" && npm ci --ignore-scripts && npm run build)
+    (cd "${MCP_SRC}" && npm ci --ignore-scripts && npm rebuild better-sqlite3 && npm run build)
     mkdir -p "${MCP_DEST}"
     cp -R "${MCP_SRC}/dist" "${MCP_DEST}/"
     cp -R "${MCP_SRC}/node_modules" "${MCP_DEST}/"
