@@ -1,14 +1,20 @@
 # Artisanal Todo
 
-A simple, local-only macOS todo app with a warm pen-and-paper feel.
-
-- One continuous scrollable page — active tasks at the bottom, history above
-- Fully offline — your data never leaves your machine
-- macOS desktop widget (3, 5, or 10 tasks at a glance)
-- Light, Dark, and Auto (follows system) appearance modes
-- AI-ready: built-in MCP server lets Claude manage your todos
+A local-first macOS todo app with a warm pen-and-paper feel — and a built-in MCP server so AI assistants like Claude can manage your tasks for you.
 
 **Requires macOS 15 (Sequoia) or later.**
+
+---
+
+## Why Artisanal Todo?
+
+Most todo apps are cluttered, cloud-dependent, or designed for teams. Artisanal Todo is built for individuals who want something simple, private, and genuinely pleasant to use.
+
+- **One continuous page** — active tasks at the bottom, completed history above. No projects, no tags, no friction.
+- **Fully offline** — your data never leaves your machine. No account required.
+- **AI-ready** — a built-in MCP server lets Claude (or any MCP-compatible AI) read and manage your tasks by natural language. Ask Claude to add tasks while you're in a meeting, or have it clear your list when you're done for the day.
+- **macOS widget** — see your top 3, 5, or 10 tasks at a glance on your desktop.
+- **Light, Dark, and Auto** appearance modes.
 
 ---
 
@@ -49,11 +55,34 @@ Downloads the latest release and installs the app to `/Applications`.
 
 ## Use with AI (MCP)
 
-Artisanal Todo includes an MCP server so AI assistants like Claude can read and manage your tasks by voice or natural language.
+Artisanal Todo ships with an MCP (Model Context Protocol) server. This means any MCP-compatible AI assistant — including Claude Desktop and Claude Code — can read and manage your todos directly, without copy-pasting or switching windows.
+
+### What you can do
+
+Once connected, just talk to Claude naturally:
+
+| You say | What happens |
+|---------|--------------|
+| *"What's on my list?"* | Claude reads and summarizes your todos |
+| *"Add: review the quarterly report"* | Task appears in the app instantly |
+| *"Mark 'review the quarterly report' as done"* | Moves it to history |
+| *"Actually unmark that — I'm not done"* | Restores it to active |
+| *"Clear everything I've finished today"* | Claude removes completed tasks |
+| *"I'm heading into a meeting — add these action items: ..."* | Add multiple tasks at once |
+
+The app refreshes live whenever Claude makes a change — no manual sync needed.
+
+### Use cases
+
+- **During meetings** — ask Claude to capture action items while you stay focused
+- **Voice-to-task** — dictate tasks to Claude and have them land in your list
+- **End-of-day cleanup** — ask Claude to summarize what you finished and clear completed tasks
+- **Quick triage** — ask *"what do I still have open?"* without opening the app
+- **Agentic workflows** — let Claude manage tasks as part of longer automated sequences (e.g., "research X, then add a follow-up task when done")
 
 ### Setup
 
-**1. Build the server** (requires Node.js 18+):
+**1. Build the MCP server** (requires Node.js 18+):
 
 ```bash
 cd mcp-server
@@ -76,15 +105,21 @@ npm run build
 
 Replace `/path/to/todoApp` with the actual folder path on your machine. Restart Claude Desktop after saving.
 
-**3. Start talking to Claude:**
+**3. Add to Claude Code** — run this command:
 
-- *"What's on my todo list?"*
-- *"Add a task: call the dentist"*
-- *"Mark 'call the dentist' as done"*
-- *"Actually, unmark that — I didn't finish it"*
-- *"Delete task 2"*
+```bash
+claude mcp add artisanal-todo node /path/to/todoApp/mcp-server/dist/index.js
+```
 
-The app refreshes instantly when Claude makes a change.
+### Available MCP tools
+
+| Tool | Description |
+|------|-------------|
+| `list_todos` | Returns all todos (pending and completed) |
+| `add_todo` | Adds a new task |
+| `complete_todo` | Marks a task done (by number, title, or ID) |
+| `uncomplete_todo` | Restores a completed task to active |
+| `delete_todo` | Permanently removes a task |
 
 ### Other MCP clients
 
