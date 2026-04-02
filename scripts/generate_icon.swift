@@ -82,6 +82,11 @@ func makeIcon(size: Int, palette p: Palette) -> CGImage {
     ctx.setLineCap(.round)
     ctx.setLineJoin(.round)
 
+    // ── Scale content to 95% (5% smaller), centered on canvas ───────────
+    ctx.translateBy(x: s * 0.5, y: s * 0.5)
+    ctx.scaleBy(x: 0.85, y: 0.85)
+    ctx.translateBy(x: -s * 0.5, y: -s * 0.5)
+
     // ── Squircle clip + plain background ──────────────────────────────────
     ctx.addPath(squirclePath(size: s))
     ctx.clip()
