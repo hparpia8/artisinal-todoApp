@@ -82,33 +82,27 @@ The app refreshes live whenever Claude makes a change — no manual sync needed.
 
 ### Setup
 
-**1. Build the MCP server** (requires Node.js 18+):
+The MCP server and a Node.js runtime are bundled inside the app — no extra installs needed.
 
-```bash
-cd mcp-server
-npm install
-npm run build
-```
-
-**2. Add to Claude Desktop** — open `~/Library/Application Support/Claude/claude_desktop_config.json` and add:
+**Add to Claude Desktop** — open `~/Library/Application Support/Claude/claude_desktop_config.json` and add:
 
 ```json
 {
   "mcpServers": {
     "artisanal-todo": {
-      "command": "node",
-      "args": ["/path/to/todoApp/mcp-server/dist/index.js"]
+      "command": "/Applications/TodoApp.app/Contents/Resources/node",
+      "args": ["/Applications/TodoApp.app/Contents/Resources/mcp-server/dist/index.js"]
     }
   }
 }
 ```
 
-Replace `/path/to/todoApp` with the actual folder path on your machine. Restart Claude Desktop after saving.
+Restart Claude Desktop after saving.
 
-**3. Add to Claude Code** — run this command:
+**Add to Claude Code:**
 
 ```bash
-claude mcp add artisanal-todo node /path/to/todoApp/mcp-server/dist/index.js
+claude mcp add artisanal-todo /Applications/TodoApp.app/Contents/Resources/node /Applications/TodoApp.app/Contents/Resources/mcp-server/dist/index.js
 ```
 
 ### Available MCP tools
@@ -123,7 +117,22 @@ claude mcp add artisanal-todo node /path/to/todoApp/mcp-server/dist/index.js
 
 ### Other MCP clients
 
-Any MCP-compatible client works. Point it at `node /path/to/todoApp/mcp-server/dist/index.js` using stdio transport.
+Any MCP-compatible client works. Point it at the bundled server using stdio transport:
+
+```
+/Applications/TodoApp.app/Contents/Resources/node /Applications/TodoApp.app/Contents/Resources/mcp-server/dist/index.js
+```
+
+### Building from source (optional)
+
+If you cloned the repo and want to run the MCP server from source instead:
+
+```bash
+cd mcp-server
+npm install
+npm run build
+node dist/index.js
+```
 
 ---
 

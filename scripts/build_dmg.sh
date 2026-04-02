@@ -67,7 +67,48 @@ fi
 cp -R "${APP_IN_ARCHIVE}" "${EXPORT_PATH}/"
 echo "  ✓ Exported: ${EXPORT_PATH}/${APP_NAME}.app"
 
-# ── 4. Package into DMG ───────────────────────────────────────────────────────
+# ── 4. Bundle MCP server + Node.js runtime ──────────────────────────────────
+
+echo "→ Bundling MCP server..."
+MCP_SRC="mcp-server"
+RESOURCES="${EXPORT_PATH}/${APP_NAME}.app/Contents/Resources"
+MCP_DEST="${RESOURCES}/mcp-server"
+
+if [ ! -f "${MCP_SRC}/package.json" ]; then
+    echo "  ⚠ mcp-server/ not found — skipping MCP bundle"
+else
+    (cd "${MCP_SRC}" && npm ci --ignore-scripts && npm run build)
+    mkdir -p "${MCP_DEST}"
+    cp -R "${MCP_SRC}/dist" "${MCP_DEST}/"
+    cp -R "${MCP_SRC}/node_modules" "${MCP_DEST}/"
+    cp    "${MCP_SRC}/package.json" "${MCP_DEST}/"
+    echo "  ✓ MCP server bundled"
+fi
+
+echo "→ Bundling Node.js runtime..."
+NODE_VERSION="22.14.0"
+ARCH=$(uname -m)
+if [ "${ARCH}" = "arm64" ]; then
+    NODE_PLATFORM="darwin-arm64"
+else
+    NODE_PLATFORM="darwin-x64"
+fi
+NODE_TARBALL="node-v${NODE_VERSION}-${NODE_PLATFORM}.tar.gz"
+NODE_URL="https://nodejs.org/dist/v${NODE_VERSION}/${NODE_TARBALL}"
+NODE_TMP="${EXPORT_PATH}/node-tmp"
+
+mkdir -p "${NODE_TMP}"
+if ! curl -fsSL --progress-bar "${NODE_URL}" -o "${NODE_TMP}/${NODE_TARBALL}"; then
+    echo "  ✗ Failed to download Node.js v${NODE_VERSION}"
+    exit 1
+fi
+tar -xzf "${NODE_TMP}/${NODE_TARBALL}" -C "${NODE_TMP}" --strip-components=2 "node-v${NODE_VERSION}-${NODE_PLATFORM}/bin/node"
+cp "${NODE_TMP}/node" "${RESOURCES}/node"
+chmod +x "${RESOURCES}/node"
+rm -rf "${NODE_TMP}"
+echo "  ✓ Node.js v${NODE_VERSION} (${ARCH}) bundled"
+
+# ── 5. Package into DMG ───────────────────────────────────────────────────────
 
 echo "→ Creating DMG..."
 rm -f "${DMG_OUTPUT}"
@@ -94,7 +135,7 @@ else
         -fs HFS+ \
         -fsargs "-c c=64,a=16,b=16" \
         -format UDRW \
-        -size 120m \
+        -size 200m \
         "${TMP_DMG}"
 
     hdiutil convert "${TMP_DMG}" \
@@ -107,7 +148,7 @@ fi
 
 echo "  ✓ DMG: ${DMG_OUTPUT}"
 
-# ── 5. Notarization (optional — requires paid Apple Developer account) ─────────
+# ── 6. Notarization (optional — requires paid Apple Developer account) ─────────
 #
 # To distribute a Gatekeeper-clean build outside the Mac App Store you must:
 #
@@ -142,7 +183,7 @@ echo "  ✓ DMG: ${DMG_OUTPUT}"
 # xcrun stapler staple "${DMG_OUTPUT}"
 # echo "  ✓ Notarized and stapled."
 
-# ── 6. Upload to GitHub Releases ──────────────────────────────────────────────
+# ── 7. Upload to GitHub Releases ──────────────────────────────────────────────
 #
 # Requires the GitHub CLI (brew install gh) and authentication (gh auth login).
 # Replace <tag> with the version tag you want to create, e.g. v1.0.0.
