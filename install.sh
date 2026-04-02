@@ -55,9 +55,31 @@ fi
 echo "→ Installing to ${INSTALL_DIR}..."
 if [ -d "${INSTALL_DIR}/${APP_NAME}.app" ]; then
     echo "  (replacing existing installation)"
-    rm -rf "${INSTALL_DIR}/${APP_NAME}.app"
+    # Quit the app if it's running — macOS blocks overwriting open bundles
+    if pgrep -x "${APP_NAME}" &>/dev/null; then
+        echo "  → Quitting running ${APP_NAME}..."
+        osascript -e "tell application \"${APP_NAME}\" to quit" 2>/dev/null || true
+        sleep 2
+    fi
+    # Strip macOS quarantine attributes that block removal
+    xattr -cr "${INSTALL_DIR}/${APP_NAME}.app" 2>/dev/null || true
+    rm -rf "${INSTALL_DIR}/${APP_NAME}.app" 2>/dev/null
+    if [ -d "${INSTALL_DIR}/${APP_NAME}.app" ]; then
+        echo "  → Removal blocked, retrying with elevated privileges..."
+        sudo rm -rf "${INSTALL_DIR}/${APP_NAME}.app"
+    fi
+    if [ -d "${INSTALL_DIR}/${APP_NAME}.app" ]; then
+        echo ""
+        echo "  ✗ Could not remove existing installation."
+        echo "    Please quit ${APP_NAME}, then re-run this installer."
+        hdiutil detach "${MOUNT_POINT}" -quiet 2>/dev/null || true
+        rm -rf "${TMP_DIR}"
+        exit 1
+    fi
 fi
 cp -R "${MOUNT_POINT}/${APP_NAME}.app" "${INSTALL_DIR}/"
+# Remove quarantine flag so future updates can overwrite cleanly
+xattr -cr "${INSTALL_DIR}/${APP_NAME}.app" 2>/dev/null || true
 
 echo "→ Cleaning up..."
 hdiutil detach "${MOUNT_POINT}" -quiet
