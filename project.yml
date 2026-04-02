@@ -10,8 +10,12 @@ settings:
   base:
     SWIFT_VERSION: "5.9"
     MACOSX_DEPLOYMENT_TARGET: "15.0"
-    DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
     ENABLE_HARDENED_RUNTIME: YES
+  configs:
+    Debug:
+      DEBUG_INFORMATION_FORMAT: dwarf
+    Release:
+      DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
 
 schemes:
   TodoApp:
